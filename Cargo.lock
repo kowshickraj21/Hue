@@ -2109,6 +2109,11 @@ name = "paint"
 version = "0.1.0"
 dependencies = [
  "eframe",
+ "egui",
+ "egui_glow",
+ "glow",
+ "glutin",
+ "glutin-winit",
 ]
 
 [[package]]

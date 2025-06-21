@@ -7,7 +7,8 @@ fn main() {
 
 pub struct MyApp {
     picked_color : Color32,
-    strokes: Vec<(Pos2, Pos2)>,
+    size: f32,
+    strokes: Vec<(Pos2, Pos2, Color32, f32)>,
     last_pos: Option<Pos2>,
 }
 
@@ -21,6 +22,7 @@ impl Default for MyApp {
     fn default() -> Self {
         Self { 
             picked_color: Color32::from_rgb(0, 0, 0),
+            size: 2.0,
             strokes: vec![],
             last_pos: None,
         }
@@ -31,26 +33,41 @@ impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
 
-           if ui.add(
-                Button::new("Clear")
-            ).clicked() {
-                self.strokes.clear();
-            }
-            color_picker::color_edit_button_srgba(ui, &mut self.picked_color, egui::color_picker::Alpha::OnlyBlend);
-
             let canvas_size = Vec2::new(1000.0, 1000.0);
 
-            // Allocate space + painter
+            ui.horizontal(|ui| {
+
+                if ui.add(
+                    Button::new("Clear")
+                ).clicked() {
+                    self.strokes.clear();
+                }
+
+                color_picker::color_edit_button_srgba(ui, &mut self.picked_color, egui::color_picker::Alpha::OnlyBlend);
+
+                egui::ComboBox::from_label("Size")
+                .selected_text(match self.size {
+                    2.0 => "Small",
+                    4.0 => "Medium",
+                    6.0 => "Thick",
+                    _ => "Custom"
+                })
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut self.size, 2.0, "Small");
+                    ui.selectable_value(&mut self.size, 4.0, "Medium");
+                    ui.selectable_value(&mut self.size, 6.0, "Thick");
+                });
+
+            });
+
             let (response, painter) = ui.allocate_painter(canvas_size, Sense::drag());
 
-            // Draw canvas background
             painter.rect_filled(response.rect, 0.0, Color32::WHITE);
 
-            // Handle mouse input
             if response.dragged() {
                 if let Some(pos) = ctx.input(|i| i.pointer.hover_pos()) {
                     if let Some(last) = self.last_pos {
-                        self.strokes.push((last, pos));
+                        self.strokes.push((last, pos, self.picked_color, self.size));
                     }
                     self.last_pos = Some(pos);
                 }
@@ -58,11 +75,10 @@ impl eframe::App for MyApp {
                 self.last_pos = None;
             }
 
-            // Draw all strokes
-            for (start, end) in &self.strokes {
+            for (start, end, color, size) in &self.strokes {
                 painter.line_segment(
                     [*start, *end],
-                    Stroke::new(2.0, self.picked_color),
+                    Stroke::new(*size, *color),
                 );
             }
         });
